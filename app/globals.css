@@ -186,3 +186,17 @@ body {
   border-bottom: 1.5px solid var(--color-accent-indigo);
   border-right: 1.5px solid var(--color-accent-indigo);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Marching ants — drop-zone drag-over border                             */
+/* ---------------------------------------------------------------------- */
+
+@keyframes marching-ants {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.marching-ants-rect {
+  animation: marching-ants 0.5s linear infinite;
+}

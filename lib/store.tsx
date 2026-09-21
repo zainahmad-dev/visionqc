@@ -4,14 +4,27 @@ import { createContext, useContext, useReducer, type Dispatch, type ReactNode } 
 import type { BBox, Defect, Inspection, ResultMode, Severity } from "./types";
 import { buildMockInspections } from "./mock";
 import { finalizeBlockers } from "./rules";
+import type { ScanPhase } from "./scan";
 
 export type Tab = "hub" | "review" | "logs" | "analytics";
+
+export type ToastAction = { label: string; href: string; focusId?: string };
 
 export type Toast = {
   id: string;
   message: string;
-  tone: "info" | "success" | "error";
+  tone: "info" | "success" | "warning" | "error";
+  action?: ToastAction;
 };
+
+// The one scan the simulated engine is actively working on — null when idle.
+export type ScanState = {
+  inspectionId: string;
+  phase: ScanPhase;
+  phaseStartedAt: number;
+  scanStartedAt: number;
+  simulateInvalidJson: boolean;
+} | null;
 
 export type State = {
   inspections: Inspection[];
@@ -19,14 +32,20 @@ export type State = {
   activeTab: Tab;
   theme: "dark" | "light";
   toasts: Toast[];
+  scan: ScanState;
+  simulateInvalidJson: boolean; // dev toggle, consumed by the next scan that starts
+  activeHubId: string | null; // inspection focused in the Hub preview panel
 };
 
 export type Action =
-  | { type: "ADD_QUEUE"; inspection: Inspection }
+  | { type: "ADD_QUEUE_MANY"; inspections: Inspection[] }
   | { type: "REMOVE_QUEUE"; id: string }
   | { type: "SCAN_START"; id: string }
+  | { type: "SCAN_PHASE"; id: string; phase: ScanPhase }
   | { type: "SCAN_DONE"; id: string; result: Partial<Inspection> }
   | { type: "RETRY"; id: string }
+  | { type: "SET_SIMULATE_INVALID_JSON"; value: boolean }
+  | { type: "SET_ACTIVE_HUB"; id: string | null }
   | { type: "SET_THRESHOLD"; value: number }
   | { type: "DEFECT_CONFIRM"; inspectionId: string; defectId: string }
   | {
@@ -46,7 +65,8 @@ export type Action =
   | { type: "SET_NOTES"; inspectionId: string; notes: string }
   | { type: "FINALIZE"; inspectionId: string }
   | { type: "SET_TAB"; tab: Tab }
-  | { type: "TOAST"; message: string; tone?: Toast["tone"] }
+  | { type: "TOAST"; message: string; tone?: Toast["tone"]; action?: ToastAction }
+  | { type: "DISMISS_TOAST"; id: string }
   | { type: "TOGGLE_THEME" };
 
 function newId(prefix: string): string {
@@ -74,24 +94,45 @@ function mapDefect(
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case "ADD_QUEUE":
-      return { ...state, inspections: [action.inspection, ...state.inspections] };
+    case "ADD_QUEUE_MANY":
+      return { ...state, inspections: [...action.inspections, ...state.inspections] };
 
     case "REMOVE_QUEUE":
-      return { ...state, inspections: state.inspections.filter((i) => i.id !== action.id) };
-
-    case "SCAN_START":
       return {
         ...state,
+        inspections: state.inspections.filter((i) => i.id !== action.id),
+        scan: state.scan?.inspectionId === action.id ? null : state.scan,
+        activeHubId: state.activeHubId === action.id ? null : state.activeHubId,
+      };
+
+    case "SCAN_START": {
+      const now = Date.now();
+      return {
+        ...state,
+        simulateInvalidJson: false, // consumed by this scan
+        scan: {
+          inspectionId: action.id,
+          phase: "ingesting",
+          phaseStartedAt: now,
+          scanStartedAt: now,
+          simulateInvalidJson: state.simulateInvalidJson,
+        },
         inspections: mapInspection(state.inspections, action.id, (i) => ({
           ...i,
           status: "scanning",
         })),
       };
+    }
+
+    case "SCAN_PHASE": {
+      if (!state.scan || state.scan.inspectionId !== action.id) return state;
+      return { ...state, scan: { ...state.scan, phase: action.phase, phaseStartedAt: Date.now() } };
+    }
 
     case "SCAN_DONE":
       return {
         ...state,
+        scan: state.scan?.inspectionId === action.id ? null : state.scan,
         inspections: mapInspection(state.inspections, action.id, (i) => {
           const merged: Inspection = { ...i, ...action.result };
           merged.status = merged.error_code
@@ -104,14 +145,22 @@ function reducer(state: State, action: Action): State {
       };
 
     case "RETRY":
+      // Re-queue rather than jump straight to "scanning" — the engine already
+      // owns picking one queued item at a time, so retries flow through it too.
       return {
         ...state,
         inspections: mapInspection(state.inspections, action.id, (i) => ({
           ...i,
-          status: "scanning",
+          status: "queued",
           error_code: null,
         })),
       };
+
+    case "SET_SIMULATE_INVALID_JSON":
+      return { ...state, simulateInvalidJson: action.value };
+
+    case "SET_ACTIVE_HUB":
+      return { ...state, activeHubId: action.id };
 
     case "SET_THRESHOLD":
       return { ...state, threshold: action.value };
@@ -207,9 +256,17 @@ function reducer(state: State, action: Action): State {
         ...state,
         toasts: [
           ...state.toasts,
-          { id: newId("toast"), message: action.message, tone: action.tone ?? "info" },
+          {
+            id: newId("toast"),
+            message: action.message,
+            tone: action.tone ?? "info",
+            action: action.action,
+          },
         ],
       };
+
+    case "DISMISS_TOAST":
+      return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
 
     case "TOGGLE_THEME":
       return { ...state, theme: state.theme === "dark" ? "light" : "dark" };
@@ -226,6 +283,9 @@ function initState(): State {
     activeTab: "hub",
     theme: "dark",
     toasts: [],
+    scan: null,
+    simulateInvalidJson: false,
+    activeHubId: null,
   };
 }
 

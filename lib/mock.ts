@@ -14,7 +14,7 @@ function mulberry32(seed: number) {
 
 const SEED = 20240512;
 
-const CATEGORIES = [
+export const CATEGORIES = [
   "Aluminum Bracket",
   "PCB Assembly",
   "Plastic Housing",

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import { StoreProvider } from "@/lib/store";
+import ScanEngine from "@/components/ScanEngine";
+import ToastHost from "@/components/ToastHost";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -43,7 +46,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full" suppressHydrationWarning>
-        <AppShell>{children}</AppShell>
+        <StoreProvider>
+          <ScanEngine />
+          <AppShell>{children}</AppShell>
+          <ToastHost />
+        </StoreProvider>
       </body>
     </html>
   );
