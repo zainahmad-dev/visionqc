@@ -82,6 +82,12 @@ export function generateAnalysis(): Partial<Inspection> {
 export const BROKEN_JSON_SAMPLE =
   '{"category": "Steel Fastener", "defects": [{"type": "dent", "severity": "medium", "confidence": 0.69}';
 
+export const ERROR_REASON: Record<ErrorCode, string> = {
+  invalid_json: "The model's output could not be parsed as valid JSON.",
+  corrupt_image: "This image failed to decode — the file may be corrupted or unsupported.",
+  timeout: "The scan timed out before it could finish.",
+};
+
 export function errorResult(errorCode: ErrorCode, rawOutput: string | null): Partial<Inspection> {
   return {
     error_code: errorCode,

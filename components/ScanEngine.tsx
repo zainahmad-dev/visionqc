@@ -79,7 +79,7 @@ export default function ScanEngine() {
             type: "TOAST",
             message: `Analysis complete - ${scan.inspectionId}`,
             tone: "success",
-            action: { label: "Review Findings ->", href: "/review" },
+            action: { label: "Review Findings ->", href: `/review?id=${scan.inspectionId}` },
           });
         }
       })();

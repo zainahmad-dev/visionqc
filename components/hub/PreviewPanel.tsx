@@ -5,16 +5,10 @@ import Link from "next/link";
 import { ImageOff, RotateCcw, TriangleAlert } from "lucide-react";
 import type { Inspection } from "@/lib/types";
 import { useStore, type ScanState } from "@/lib/store";
-import { TOTAL_SCAN_MS, phaseStartOffset } from "@/lib/scan";
+import { ERROR_REASON, TOTAL_SCAN_MS, phaseStartOffset } from "@/lib/scan";
 import ScanStepper from "./ScanStepper";
 import ScannerOverlay from "./ScannerOverlay";
 import StatusBadge from "@/components/StatusBadge";
-
-const REASON: Record<string, string> = {
-  invalid_json: "The model's output could not be parsed as valid JSON.",
-  corrupt_image: "This image failed to decode — the file may be corrupted or unsupported.",
-  timeout: "The scan timed out before it could finish.",
-};
 
 type Progress = { elapsedTotal: number; percent: number };
 
@@ -123,7 +117,7 @@ export default function PreviewPanel({
           <div className="flex items-start gap-2">
             <TriangleAlert size={16} className="mt-0.5 shrink-0 text-[var(--color-review)]" />
             <p className="text-sm text-[var(--color-text-primary)]">
-              {inspection.error_code ? REASON[inspection.error_code] : "This item needs manual review."}
+              {inspection.error_code ? ERROR_REASON[inspection.error_code] : "This item needs manual review."}
             </p>
           </div>
           <button
@@ -162,7 +156,7 @@ export default function PreviewPanel({
             </div>
           </div>
           <Link
-            href="/review"
+            href={`/review?id=${inspection.id}`}
             className="flex h-11 w-fit items-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
             style={{ background: "var(--gradient-accent)" }}
           >
