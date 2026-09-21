@@ -45,7 +45,11 @@ export default function ToastHost() {
     if (toast.action?.focusId) {
       dispatch({ type: "SET_ACTIVE_HUB", id: toast.action.focusId });
     }
-    if (toast.action) router.push(toast.action.href);
+    if (toast.action?.onAction) {
+      toast.action.onAction();
+    } else if (toast.action?.href) {
+      router.push(toast.action.href);
+    }
     dispatch({ type: "DISMISS_TOAST", id: toast.id });
   }
 

@@ -9,7 +9,7 @@ import type { Inspection, Status } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 import ReviewCanvas from "@/components/ReviewCanvas";
 import RecordPicker from "@/components/review/RecordPicker";
-import FindingsListReadOnly from "@/components/review/FindingsListReadOnly";
+import FindingsPanel from "@/components/review/FindingsPanel";
 
 // Everything a reviewer might still need to act on — scanned, broken, or
 // stuck. Queued/scanning have no output yet; completed is already done.
@@ -47,7 +47,7 @@ function ReviewRecordView({ inspection, threshold }: { inspection: Inspection; t
           onSelectDefect={setSelectedDefectId}
           onHoverDefect={setHoveredDefectId}
         />
-        <FindingsListReadOnly
+        <FindingsPanel
           inspection={inspection}
           threshold={threshold}
           selectedId={selectedDefectId}

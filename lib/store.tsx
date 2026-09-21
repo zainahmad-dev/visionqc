@@ -8,7 +8,9 @@ import type { ScanPhase } from "./scan";
 
 export type Tab = "hub" | "review" | "logs" | "analytics";
 
-export type ToastAction = { label: string; href: string; focusId?: string };
+// Either navigates (href) or runs a local callback (onAction) — e.g. an
+// "Undo" after dismissing a finding, which shouldn't change the route.
+export type ToastAction = { label: string; href?: string; focusId?: string; onAction?: () => void };
 
 export type Toast = {
   id: string;
@@ -62,6 +64,7 @@ export type Action =
       defect: { type: string; severity: Severity; bbox: BBox };
     }
   | { type: "SET_RESULT_MODE"; inspectionId: string; mode: ResultMode }
+  | { type: "SET_REVIEWER_CATEGORY"; inspectionId: string; category: string }
   | { type: "SET_NOTES"; inspectionId: string; notes: string }
   | { type: "FINALIZE"; inspectionId: string }
   | { type: "SET_TAB"; tab: Tab }
@@ -227,6 +230,15 @@ function reducer(state: State, action: Action): State {
         inspections: mapInspection(state.inspections, action.inspectionId, (i) => ({
           ...i,
           result_mode: action.mode,
+        })),
+      };
+
+    case "SET_REVIEWER_CATEGORY":
+      return {
+        ...state,
+        inspections: mapInspection(state.inspections, action.inspectionId, (i) => ({
+          ...i,
+          reviewer_category: action.category,
         })),
       };
 

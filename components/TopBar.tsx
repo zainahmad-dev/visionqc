@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ScanEye } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import ThresholdControl from "./ThresholdControl";
 import { NAV_ITEMS } from "@/lib/nav-items";
 
 function Breadcrumb() {
@@ -62,6 +63,7 @@ export default function TopBar() {
         <div className="hidden sm:block">
           <StatusPill />
         </div>
+        <ThresholdControl />
         <ThemeToggle />
       </div>
     </header>
