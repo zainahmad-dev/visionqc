@@ -197,10 +197,17 @@ function reducer(state: State, action: Action): State {
       };
 
     case "DEFECT_RESTORE":
+      // A reviewer-added defect has no ai_* fallback — its data lives only in
+      // `edited`, so restoring it must go back to "reviewer_added" and keep
+      // `edited` intact, not wipe it the way an AI-proposed defect's does.
       return {
         ...state,
         inspections: mapInspection(state.inspections, action.inspectionId, (i) =>
-          mapDefect(i, action.defectId, (d) => ({ ...d, review: "pending", edited: undefined }))
+          mapDefect(i, action.defectId, (d) =>
+            d.ai_type === null
+              ? { ...d, review: "reviewer_added" }
+              : { ...d, review: "pending", edited: undefined }
+          )
         ),
       };
 

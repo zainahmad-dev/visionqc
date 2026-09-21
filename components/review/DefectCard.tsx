@@ -117,7 +117,7 @@ export default function DefectCard({
     dispatch({ type: "DEFECT_DISMISS", inspectionId, defectId: defect.id });
     dispatch({
       type: "TOAST",
-      message: `${aiLabel} dismissed as a false positive.`,
+      message: `${reviewedLabel} dismissed as a false positive.`,
       tone: "info",
       action: {
         label: "Undo",
@@ -160,7 +160,9 @@ export default function DefectCard({
             )}
           </div>
           <p className={`text-xs text-[var(--color-text-secondary)] ${dismissed ? "line-through" : ""}`}>
-            AI: {aiLabel} {aiConfidencePct !== null ? `${aiConfidencePct}%` : "—"}
+            {defect.ai_type === null
+              ? "AI: no value — added by reviewer"
+              : `AI: ${aiLabel} ${aiConfidencePct !== null ? `${aiConfidencePct}%` : "—"}`}
           </p>
           <p className={`text-xs text-[var(--color-text-secondary)] ${dismissed ? "line-through" : ""}`}>
             Reviewed: {reviewedLabel} ({REVIEW_STATUS_WORD[defect.review]})

@@ -10,6 +10,7 @@ import StatusBadge from "@/components/StatusBadge";
 import ReviewCanvas from "@/components/ReviewCanvas";
 import RecordPicker from "@/components/review/RecordPicker";
 import FindingsPanel from "@/components/review/FindingsPanel";
+import FinalizePanel from "@/components/review/FinalizePanel";
 
 // Everything a reviewer might still need to act on — scanned, broken, or
 // stuck. Queued/scanning have no output yet; completed is already done.
@@ -56,6 +57,8 @@ function ReviewRecordView({ inspection, threshold }: { inspection: Inspection; t
           onHover={setHoveredDefectId}
         />
       </div>
+
+      <FinalizePanel inspection={inspection} threshold={threshold} />
     </>
   );
 }
@@ -69,7 +72,11 @@ function ReviewPageInner() {
     .filter((i) => REVIEWABLE.includes(i.status))
     .sort((a, b) => b.created_at - a.created_at);
 
-  const selected = id ? (reviewable.find((i) => i.id === id) ?? null) : null;
+  // Looked up across every inspection, not just `reviewable` — Finalize
+  // flips status to "completed" while its confirm modal is still animating
+  // on this same page, and the record being viewed shouldn't vanish out
+  // from under that modal mid-sequence.
+  const selected = id ? (state.inspections.find((i) => i.id === id) ?? null) : null;
 
   return (
     <div className="flex flex-col gap-6">

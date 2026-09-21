@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { ImageOff, Maximize2, Square, Tag, ZoomIn, ZoomOut } from "lucide-react";
-import { DEFECT_LABEL, type Defect, type Inspection } from "@/lib/types";
-import { effBox, effType, isFlagged } from "@/lib/rules";
+import { FilePlus2, ImageOff, Maximize2, PenLine, Square, Tag, ZoomIn, ZoomOut } from "lucide-react";
+import type { BBox, Defect, Inspection } from "@/lib/types";
+import { effBox } from "@/lib/rules";
+import { useStore } from "@/lib/store";
+import DefectBox from "./review/DefectBox";
+import DrawLayer from "./review/DrawLayer";
+import DrawPopover from "./review/DrawPopover";
+import AddDefectDialog from "./review/AddDefectDialog";
 
 // ---------------------------------------------------------------------------
 // Image asset — decodes the blob to get real dimensions, byte size and mime
@@ -126,26 +131,31 @@ const ZOOM_STEP = 25;
 function ToolbarButton({
   label,
   active,
+  disabled,
   onClick,
   children,
 }: {
   label: string;
   active?: boolean;
+  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       aria-label={label}
       aria-pressed={active}
+      aria-disabled={disabled}
       title={label}
       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] border transition-colors"
       style={{
         borderColor: active ? "var(--color-accent-cyan)" : "var(--color-border)",
-        color: active ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",
+        color: disabled ? "var(--color-text-muted)" : active ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",
         background: active ? "color-mix(in srgb, var(--color-accent-cyan) 14%, transparent)" : "transparent",
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       {children}
@@ -162,6 +172,10 @@ function Toolbar({
   onToggleBoxes,
   showLabels,
   onToggleLabels,
+  drawMode,
+  onToggleDraw,
+  drawDisabled,
+  onOpenAddDialog,
 }: {
   zoom: number;
   onZoomOut: () => void;
@@ -171,6 +185,10 @@ function Toolbar({
   onToggleBoxes: () => void;
   showLabels: boolean;
   onToggleLabels: () => void;
+  drawMode: boolean;
+  onToggleDraw: () => void;
+  drawDisabled: boolean;
+  onOpenAddDialog: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -194,82 +212,20 @@ function Toolbar({
           <Tag size={15} />
         </ToolbarButton>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Defect overlay box
-// ---------------------------------------------------------------------------
-
-function DefectBox({
-  defect,
-  threshold,
-  showLabel,
-  isSelected,
-  isHovered,
-  onSelect,
-  onHover,
-}: {
-  defect: Defect;
-  threshold: number;
-  showLabel: boolean;
-  isSelected: boolean;
-  isHovered: boolean;
-  onSelect: () => void;
-  onHover: (hovering: boolean) => void;
-}) {
-  const box = effBox(defect);
-  if (!box) return null;
-
-  const flagged = isFlagged(defect, threshold);
-  const color = flagged ? "var(--color-review)" : "var(--color-accent-cyan)";
-  const type = effType(defect);
-  const typeLabel = (type ? (DEFECT_LABEL[type] ?? type) : "Finding").toUpperCase();
-  const confidencePct = defect.ai_confidence !== null ? Math.round(defect.ai_confidence * 100) : null;
-  const labelBelow = box.y < 0.08;
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
-      onFocus={() => onHover(true)}
-      onBlur={() => onHover(false)}
-      aria-label={`${typeLabel}${confidencePct !== null ? `, ${confidencePct}% confidence` : ""}${flagged ? ", needs review" : ""}`}
-      aria-pressed={isSelected}
-      className="absolute rounded-[4px] border-2 transition-[box-shadow,background-color] duration-150"
-      style={{
-        left: `${box.x * 100}%`,
-        top: `${box.y * 100}%`,
-        width: `${box.w * 100}%`,
-        height: `${box.h * 100}%`,
-        borderColor: color,
-        background: isSelected || isHovered ? `color-mix(in srgb, ${color} 16%, transparent)` : "transparent",
-        boxShadow: isSelected
-          ? `0 0 0 2px var(--color-bg), 0 0 0 4px ${color}, 0 0 18px 2px ${color}`
-          : isHovered
-            ? `0 0 0 3px color-mix(in srgb, ${color} 55%, transparent)`
-            : "none",
-      }}
-    >
-      {showLabel && (
-        <span
-          className="absolute left-0 whitespace-nowrap rounded-[3px] px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none text-[#0b0f17]"
-          style={{
-            top: labelBelow ? "100%" : undefined,
-            bottom: labelBelow ? undefined : "100%",
-            marginTop: labelBelow ? "2px" : undefined,
-            marginBottom: labelBelow ? undefined : "2px",
-            background: color,
-          }}
+      <div className="flex items-center gap-1 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+        <ToolbarButton
+          label={drawDisabled ? "Draw new finding (needs a displayed image)" : "Draw new finding"}
+          active={drawMode}
+          disabled={drawDisabled}
+          onClick={onToggleDraw}
         >
-          {typeLabel}
-          {confidencePct !== null ? ` ${confidencePct}%` : ""}
-        </span>
-      )}
-    </button>
+          <PenLine size={15} />
+        </ToolbarButton>
+        <ToolbarButton label="Add finding via form" onClick={onOpenAddDialog}>
+          <FilePlus2 size={15} />
+        </ToolbarButton>
+      </div>
+    </div>
   );
 }
 
@@ -334,12 +290,17 @@ export default function ReviewCanvas({
   onSelectDefect: (id: string | null) => void;
   onHoverDefect: (id: string | null) => void;
 }) {
+  const { dispatch } = useStore();
   const asset = useImageAsset(inspection.image_url);
   const [viewportRef, viewportSize] = useElementSize();
+  const frameRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(100);
   const [showBoxes, setShowBoxes] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [cursorFraction, setCursorFraction] = useState<{ x: number; y: number } | null>(null);
+  const [mode, setMode] = useState<"select" | "draw">("select");
+  const [pendingBox, setPendingBox] = useState<BBox | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // Callers key this component by inspection.id, so a record switch remounts
   // it fresh — no effect needed to reset zoom/cursor state.
@@ -357,6 +318,10 @@ export default function ReviewCanvas({
 
   const selectedDefect = inspection.defects.find((d) => d.id === selectedDefectId) ?? null;
 
+  function commitBBox(defectId: string, bbox: BBox) {
+    dispatch({ type: "DEFECT_EDIT", inspectionId: inspection.id, defectId, edits: { bbox } });
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <Toolbar
@@ -368,6 +333,10 @@ export default function ReviewCanvas({
         onToggleBoxes={() => setShowBoxes((v) => !v)}
         showLabels={showLabels}
         onToggleLabels={() => setShowLabels((v) => !v)}
+        drawMode={mode === "draw"}
+        onToggleDraw={() => setMode((m) => (m === "draw" ? "select" : "draw"))}
+        drawDisabled={!frame}
+        onOpenAddDialog={() => setAddDialogOpen(true)}
       />
 
       <div
@@ -381,7 +350,8 @@ export default function ReviewCanvas({
           <div className="flex max-w-xs flex-col items-center gap-2 p-6 text-center">
             <ImageOff size={28} className="text-[var(--color-text-muted)]" />
             <p className="text-sm text-[var(--color-text-secondary)]">
-              This image cannot be displayed. Findings can still be recorded manually.
+              This image cannot be displayed. Use &quot;Add finding via form&quot; above to record findings
+              manually.
             </p>
           </div>
         )}
@@ -392,6 +362,7 @@ export default function ReviewCanvas({
 
         {asset.status === "ready" && frame && (
           <div
+            ref={frameRef}
             className="relative shrink-0"
             style={{ width: frame.width, height: frame.height }}
             onMouseMove={(e) => {
@@ -420,15 +391,27 @@ export default function ReviewCanvas({
                   showLabel={showLabels}
                   isSelected={defect.id === selectedDefectId}
                   isHovered={defect.id === hoveredDefectId}
+                  adjustable={mode === "select"}
+                  frameRef={frameRef}
                   onSelect={() => onSelectDefect(defect.id === selectedDefectId ? null : defect.id)}
                   onHover={(hovering) => onHoverDefect(hovering ? defect.id : null)}
+                  onCommitBBox={(bbox) => commitBBox(defect.id, bbox)}
                 />
               ))}
+
+            {mode === "draw" && <DrawLayer frameRef={frameRef} onComplete={setPendingBox} />}
           </div>
         )}
       </div>
 
       <FooterStrip asset={asset} cursorFraction={cursorFraction} selectedDefect={selectedDefect} />
+
+      <DrawPopover inspectionId={inspection.id} pendingBox={pendingBox} onDone={() => setPendingBox(null)} />
+      <AddDefectDialog
+        inspectionId={inspection.id}
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+      />
     </div>
   );
 }
