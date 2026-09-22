@@ -1,7 +1,7 @@
 import { DEFECT_LABEL, type BBox, type Defect, type ErrorCode, type Inspection, type Review, type Severity } from "./types";
 
 // Deterministic PRNG (mulberry32) so mock data is stable across reloads.
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let state = seed;
   return function rng(): number {
     state |= 0;
@@ -28,6 +28,14 @@ export const CATEGORIES = [
 const DEFECT_TYPES = Object.keys(DEFECT_LABEL);
 const SEVERITIES: Severity[] = ["low", "medium", "critical"];
 const THRESHOLD = 0.75;
+
+const DAY_MIN = 24 * 60;
+const COMPLETED_SPAN_MIN = 85 * DAY_MIN;
+const UNRESOLVED_AGE_MIN: Record<ErrorCode, number> = {
+  invalid_json: 9 * 60,
+  corrupt_image: 12 * DAY_MIN,
+  timeout: 41 * DAY_MIN,
+};
 
 function round(n: number, decimals: number): number {
   const f = 10 ** decimals;
@@ -109,7 +117,10 @@ export function buildMockInspections(): Inspection[] {
     }
 
     const hasActiveFinding = defects.some((d) => d.review !== "dismissed");
-    const createdAt = now - rngInt(rng, 30, 4000) * 60_000;
+    // Spread over ~85 days (same one rng draw as before, so every other value in
+    // the seed is unchanged) — the analytics ranges (7d / 30d / 90d) need a
+    // record set that actually spans them.
+    const createdAt = now - rngInt(rng, 30, COMPLETED_SPAN_MIN) * 60_000;
 
     return {
       id,
@@ -133,7 +144,9 @@ export function buildMockInspections(): Inspection[] {
       reviewer_category: category,
       result_mode: "auto",
       notes: "",
-      reviewed_at: createdAt + rngInt(rng, 2, 40) * 60_000,
+      // Capped a minute in the past: a review can't have happened in the future,
+      // and a real finalize (reviewed_at = now) must always sort as the newest.
+      reviewed_at: Math.min(createdAt + rngInt(rng, 2, 40) * 60_000, now - 60_000),
     };
   }
 
@@ -142,7 +155,9 @@ export function buildMockInspections(): Inspection[] {
     errorCode: ErrorCode
   ): Inspection {
     const id = nextId();
-    const createdAt = now - rngInt(rng, 5, 200) * 60_000;
+    // Unresolved records sit at different ages (a fresh one, one from ~2 weeks
+    // ago, one from ~6 weeks ago) so the "Needs review" tile differs per range.
+    const createdAt = now - (UNRESOLVED_AGE_MIN[errorCode] + rngInt(rng, 0, 240)) * 60_000;
     const rawOutput =
       errorCode === "invalid_json"
         ? '{"category": "PCB Assembly", "defects": [{"type": "scratch", "severity": "low", "confidence": 0.81}'

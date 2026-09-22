@@ -37,6 +37,9 @@ export type State = {
   scan: ScanState;
   simulateInvalidJson: boolean; // dev toggle, consumed by the next scan that starts
   activeHubId: string | null; // inspection focused in the Hub preview panel
+  // A spoken-only message for the screen-reader live region (e.g. "restored" after
+  // Undo) — things that happen without a visible toast.
+  announcement: { id: string; message: string } | null;
 };
 
 export type Action =
@@ -69,6 +72,7 @@ export type Action =
   | { type: "FINALIZE"; inspectionId: string }
   | { type: "SET_TAB"; tab: Tab }
   | { type: "TOAST"; message: string; tone?: Toast["tone"]; action?: ToastAction }
+  | { type: "ANNOUNCE"; message: string }
   | { type: "DISMISS_TOAST"; id: string }
   | { type: "TOGGLE_THEME" };
 
@@ -284,6 +288,9 @@ function reducer(state: State, action: Action): State {
         ],
       };
 
+    case "ANNOUNCE":
+      return { ...state, announcement: { id: newId("say"), message: action.message } };
+
     case "DISMISS_TOAST":
       return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
 
@@ -305,6 +312,7 @@ function initState(): State {
     scan: null,
     simulateInvalidJson: false,
     activeHubId: null,
+    announcement: null,
   };
 }
 

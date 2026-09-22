@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ban, Check, Pencil } from "lucide-react";
 import { DEFECT_LABEL, SEVERITY_LABEL, type Defect, type Review, type Severity } from "@/lib/types";
 import { effSeverity, effType, isFlagged } from "@/lib/rules";
@@ -37,9 +37,10 @@ function EditForm({
         <label className="flex flex-col gap-1 text-xs text-[var(--color-text-secondary)]">
           Type
           <select
+            autoFocus // the user just asked to edit: land in the form, not on the button that vanished
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] px-2 text-sm text-[var(--color-text-primary)]"
+            className="h-11 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] px-2 text-sm text-[var(--color-text-primary)]"
           >
             {Object.entries(DEFECT_LABEL).map(([key, label]) => (
               <option key={key} value={key}>
@@ -53,7 +54,7 @@ function EditForm({
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as Severity)}
-            className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] px-2 text-sm text-[var(--color-text-primary)]"
+            className="h-11 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] px-2 text-sm text-[var(--color-text-primary)]"
           >
             {Object.entries(SEVERITY_LABEL).map(([key, label]) => (
               <option key={key} value={key}>
@@ -67,15 +68,15 @@ function EditForm({
         <button
           type="button"
           onClick={() => onSave({ type, severity })}
-          className="flex h-9 flex-1 items-center justify-center rounded-[var(--radius-control)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90"
-          style={{ background: "var(--gradient-accent)" }}
+          className="flex h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90"
+          style={{ background: "var(--gradient-accent-strong)" }}
         >
           Save
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="flex h-9 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
+          className="flex h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
         >
           Cancel
         </button>
@@ -103,6 +104,15 @@ export default function DefectCard({
 }) {
   const { dispatch } = useStore();
   const [isEditing, setIsEditing] = useState(false);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+  const wasEditing = useRef(false);
+
+  // The form's buttons unmount on Save/Cancel, which would drop focus on <body>;
+  // put it back on the control that opened the form.
+  useEffect(() => {
+    if (wasEditing.current && !isEditing) editButtonRef.current?.focus();
+    wasEditing.current = isEditing;
+  }, [isEditing]);
 
   const flagged = isFlagged(defect, threshold);
   const dismissed = defect.review === "dismissed";
@@ -121,7 +131,10 @@ export default function DefectCard({
       tone: "info",
       action: {
         label: "Undo",
-        onAction: () => dispatch({ type: "DEFECT_RESTORE", inspectionId, defectId: defect.id }),
+        onAction: () => {
+          dispatch({ type: "DEFECT_RESTORE", inspectionId, defectId: defect.id });
+          dispatch({ type: "ANNOUNCE", message: `${reviewedLabel} restored.` });
+        },
       },
     });
   }
@@ -136,7 +149,8 @@ export default function DefectCard({
           borderBottomColor: "var(--color-border)",
           borderRightColor: "var(--color-border)",
           background: isSelected || isHovered ? "var(--color-surface-raised)" : "var(--color-surface)",
-          opacity: dismissed ? 0.7 : 1,
+          // A dismissed finding is marked by its strikethrough, grey edge and the
+          // word "dismissed" — never by fading the text, which drops it under 4.5:1.
         }}
       >
         <button
@@ -197,15 +211,16 @@ export default function DefectCard({
             <button
               type="button"
               onClick={() => dispatch({ type: "DEFECT_CONFIRM", inspectionId, defectId: defect.id })}
-              className="flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-pass)] hover:text-[var(--color-pass)]"
+              className="flex h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-pass)] hover:text-[var(--color-pass)]"
             >
               <Check size={13} />
               Confirm
             </button>
             <button
+              ref={editButtonRef}
               type="button"
               onClick={() => setIsEditing(true)}
-              className="flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
+              className="flex h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
             >
               <Pencil size={13} />
               Edit
@@ -213,7 +228,7 @@ export default function DefectCard({
             <button
               type="button"
               onClick={handleDismiss}
-              className="flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-fail)] hover:text-[var(--color-fail)]"
+              className="flex h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-fail)] hover:text-[var(--color-fail)]"
             >
               <Ban size={13} />
               Dismiss as False Positive

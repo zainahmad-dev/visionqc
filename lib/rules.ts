@@ -25,6 +25,14 @@ export function autoResult(inspection: Inspection): "pass" | "fail" {
   return activeFindings.length > 0 ? "fail" : "pass";
 }
 
+// The result that was actually saved: the reviewer's override if they set one,
+// otherwise what the findings imply.
+export function finalResult(inspection: Inspection): "pass" | "fail" {
+  if (inspection.result_mode === "override_pass") return "pass";
+  if (inspection.result_mode === "override_fail") return "fail";
+  return autoResult(inspection);
+}
+
 export function finalizeBlockers(inspection: Inspection, threshold: number): string[] {
   const blockers: string[] = [];
 

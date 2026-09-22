@@ -80,7 +80,7 @@ export default function DropZone({ onFiles }: { onFiles: (files: File[]) => void
 
       <span
         className="flex h-12 w-12 items-center justify-center rounded-full text-white"
-        style={{ background: "var(--gradient-accent)" }}
+        style={{ background: "var(--gradient-accent-strong)" }}
       >
         <UploadCloud size={22} strokeWidth={2} />
       </span>
@@ -109,6 +109,8 @@ export default function DropZone({ onFiles }: { onFiles: (files: File[]) => void
         type="file"
         accept="image/*"
         multiple
+        tabIndex={-1}
+        aria-label="Choose product photos to scan"
         className="sr-only"
         onChange={handlePicked}
       />
@@ -117,6 +119,8 @@ export default function DropZone({ onFiles }: { onFiles: (files: File[]) => void
         type="file"
         accept="image/*"
         capture="environment"
+        tabIndex={-1}
+        aria-label="Capture a product photo with the camera"
         className="sr-only"
         onChange={handlePicked}
       />
