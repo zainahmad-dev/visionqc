@@ -227,7 +227,7 @@ export default function DefectBox({
     >
       {showLabel && (
         <span
-          className="absolute left-0 whitespace-nowrap rounded-[3px] px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none text-[#0b0f17]"
+          className="absolute left-0 whitespace-nowrap rounded-[3px] px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none text-[var(--color-on-accent)]"
           style={{
             top: labelBelow ? "100%" : undefined,
             bottom: labelBelow ? undefined : "100%",
