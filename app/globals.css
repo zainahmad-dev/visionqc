@@ -217,3 +217,27 @@ body {
     animation: marching-ants 0.5s linear infinite;
   }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Indeterminate progress — scan duration has no predictable total         */
+/* ---------------------------------------------------------------------- */
+
+@keyframes indeterminate-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.indeterminate-bar {
+  animation: indeterminate-bar 1.3s ease-in-out infinite;
+}
+
+/* With reduced motion, hold it still at a third-filled rather than sweep. */
+@media (prefers-reduced-motion: reduce) {
+  .indeterminate-bar {
+    animation: none;
+  }
+}

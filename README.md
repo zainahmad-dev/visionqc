@@ -15,6 +15,22 @@ Finalized inspections are stored in Supabase (Postgres + Storage). To run this l
 Everything before Finalize (uploads, scanning, review edits) stays in local browser state —
 only Finalize writes to the database.
 
+## Vision model setup (Ollama)
+
+Product photos are analyzed by a real local vision model through [Ollama](https://ollama.com) —
+nothing is sent to an external API.
+
+1. [Install Ollama](https://ollama.com/download) and make sure it's running (`ollama serve`,
+   or just launch the app).
+2. Pull a vision-capable model: `ollama pull moondream` (small, ~1.7GB) or
+   `ollama pull llava:7b` (larger, more capable).
+3. If you pulled a model other than `moondream`, set `OLLAMA_MODEL` in `.env.local`
+   (see `.env.example`) to match.
+
+The app talks to Ollama only from the server (`app/api/analyze`, `lib/ollama.ts`) — the
+model name and host are never sent to the browser. If Ollama isn't running or the request
+times out, the scan cleanly becomes "Failed" / "Needs Manual Review" rather than crashing.
+
 ## Getting Started
 
 First, run the development server:
