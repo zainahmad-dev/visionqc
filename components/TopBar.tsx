@@ -24,22 +24,6 @@ function Breadcrumb() {
   );
 }
 
-function StatusPill() {
-  return (
-    <div
-      className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-text-secondary)]"
-    >
-      <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-[var(--color-pass)] opacity-60" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-pass)]" />
-      </span>
-      <span className="font-mono tracking-tight">
-        Local VLM - Ollama - Online
-      </span>
-    </div>
-  );
-}
-
 export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 px-4 backdrop-blur-sm md:px-8">
@@ -59,9 +43,6 @@ export default function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden sm:block">
-          <StatusPill />
-        </div>
         <ThresholdControl />
         <ThemeToggle />
       </div>
