@@ -158,7 +158,7 @@ export default function PreviewPanel({
           <Link
             href={`/review?id=${inspection.id}`}
             className="flex h-11 w-fit items-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
-            style={{ background: "var(--gradient-accent)" }}
+            style={{ background: "var(--gradient-accent-strong)" }}
           >
             Review Findings -&gt;
           </Link>

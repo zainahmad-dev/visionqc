@@ -17,7 +17,7 @@
   /* Text */
   --color-text-primary: #e5e9f0;
   --color-text-secondary: #9aa4b8;
-  --color-text-muted: #616d82;
+  --color-text-muted: #7b879d; /* 4.6:1 on every dark surface */
 
   /* Accent gradient */
   --color-accent-cyan: #06b6d4;
@@ -30,8 +30,18 @@
 
   /* Status */
   --color-pass: #10b981;
-  --color-fail: #f43f5e;
+  --color-fail: #f66880; /* lightened from #f43f5e: its own 12% tint was 3.9:1 */
   --color-review: #f59e0b;
+
+  /* Text-safe tone for indigo (the raw indigo is 3.1:1 as text on dark) */
+  --color-indigo-text: #9092f5;
+
+  /* Text that sits ON a solid accent/status fill (e.g. the labels on canvas boxes) */
+  --color-on-accent: #0b0f17;
+
+  /* Filled buttons carry white text: the brand gradient's cyan end is only 2.4:1
+     against white, so buttons use these darker stops (5.4:1 to 6.3:1). */
+  --gradient-accent-strong: linear-gradient(90deg, #0e7490, #4f46e5);
 
   /* Radii */
   --radius-card: 12px;
@@ -39,6 +49,7 @@
 
   /* Layout */
   --max-width-app: 1440px;
+  --bottom-nav-h: calc(3.75rem + env(safe-area-inset-bottom));
 
   /* Fonts */
   --font-ui: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -56,14 +67,16 @@
 
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  --color-text-muted: #5d718d; /* 4.6:1 on white and on the page background */
 
-  --color-accent-cyan: #0891b2;
+  --color-accent-cyan: #066981;
   --color-accent-indigo: #4f46e5;
+  --color-indigo-text: #4f46e5;
+  --color-on-accent: #ffffff; /* the light-theme accents are dark enough for white text */
 
-  --color-pass: #059669;
-  --color-fail: #e11d48;
-  --color-review: #d97706;
+  --color-pass: #046f4d;
+  --color-fail: #b7183b;
+  --color-review: #925004;
 }
 
 @theme inline {
@@ -197,6 +210,10 @@ body {
   }
 }
 
-.marching-ants-rect {
-  animation: marching-ants 0.5s linear infinite;
+/* Looping — so only when the user hasn't asked for reduced motion. With it, the
+   dashed outline simply sits still. */
+@media (prefers-reduced-motion: no-preference) {
+  .marching-ants-rect {
+    animation: marching-ants 0.5s linear infinite;
+  }
 }

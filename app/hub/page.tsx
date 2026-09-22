@@ -99,7 +99,7 @@ export default function HubPage() {
               <button
                 type="button"
                 onClick={() => handleRemoveMany([...checked])}
-                className="flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] px-3 text-xs font-medium text-[var(--color-fail)] transition-colors hover:bg-[var(--color-fail)]/10"
+                className="flex h-11 items-center gap-1.5 rounded-[var(--radius-control)] px-3 text-xs font-medium text-[var(--color-fail)] transition-colors hover:bg-[var(--color-fail)]/10"
               >
                 <Trash2 size={13} />
                 Remove selected
@@ -117,10 +117,10 @@ export default function HubPage() {
           />
 
           <details className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm">
-            <summary className="cursor-pointer select-none text-[var(--color-text-secondary)]">
+            <summary className="flex min-h-11 cursor-pointer items-center select-none text-[var(--color-text-secondary)]">
               Developer options
             </summary>
-            <label className="mt-3 flex items-center gap-2 text-[var(--color-text-primary)]">
+            <label className="flex min-h-11 items-center gap-2 text-[var(--color-text-primary)]">
               <input
                 type="checkbox"
                 checked={state.simulateInvalidJson}

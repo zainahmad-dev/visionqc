@@ -27,11 +27,10 @@ function Breadcrumb() {
 function StatusPill() {
   return (
     <div
-      role="status"
       className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-text-secondary)]"
     >
       <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-pass)] opacity-60" />
+        <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-[var(--color-pass)] opacity-60" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-pass)]" />
       </span>
       <span className="font-mono tracking-tight">
@@ -45,7 +44,7 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 px-4 backdrop-blur-sm md:px-8">
       <div className="flex items-center gap-4">
-        <Link href="/hub" className="flex items-center gap-2">
+        <Link href="/hub" className="flex min-h-11 items-center gap-2">
           <span
             className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] text-white"
             style={{ background: "var(--gradient-accent)" }}

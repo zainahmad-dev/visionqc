@@ -69,7 +69,7 @@ export default function ThresholdControl() {
               type="button"
               onClick={() => dispatch({ type: "SET_THRESHOLD", value: DEFAULT_THRESHOLD })}
               aria-label="Reset to default"
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+              className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
             >
               <RotateCcw size={13} />
             </button>
@@ -87,7 +87,7 @@ export default function ThresholdControl() {
               step={1}
               value={state.threshold}
               onChange={(e) => dispatch({ type: "SET_THRESHOLD", value: Number(e.target.value) })}
-              className="h-2 w-full flex-1 accent-[var(--color-accent-cyan)]"
+              className="h-11 w-full flex-1 accent-[var(--color-accent-cyan)]"
               aria-label="Confidence threshold percent"
             />
             <span className="w-11 shrink-0 text-right font-mono text-sm text-[var(--color-text-primary)]">
@@ -101,7 +101,7 @@ export default function ThresholdControl() {
                 key={preset}
                 type="button"
                 onClick={() => dispatch({ type: "SET_THRESHOLD", value: preset })}
-                className="rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors"
                 style={{
                   borderColor: state.threshold === preset ? "var(--color-accent-cyan)" : "var(--color-border)",
                   color: state.threshold === preset ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",

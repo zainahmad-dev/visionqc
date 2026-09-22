@@ -5,7 +5,7 @@ import { Check, ChevronDown, Copy } from "lucide-react";
 
 type Schema = { status: "valid" | "invalid" | "none"; text: string };
 
-function parseSchema(raw: string | null): Schema {
+export function parseSchema(raw: string | null): Schema {
   if (raw === null) return { status: "none", text: "" };
   try {
     const parsed = JSON.parse(raw);
@@ -19,7 +19,7 @@ function parseSchema(raw: string | null): Schema {
 // review. No dangerouslySetInnerHTML — tokens render as plain React text.
 const JSON_TOKEN_RE = /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\btrue\b|\bfalse\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
 
-function highlightJson(text: string): ReactNode[] {
+export function highlightJson(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -33,7 +33,7 @@ function highlightJson(text: string): ReactNode[] {
     if (/^".*":$/.test(token)) color = "var(--color-accent-cyan)";
     else if (/^"/.test(token)) color = "var(--color-pass)";
     else if (/^(true|false|null)$/.test(token)) color = "var(--color-review)";
-    else color = "var(--color-accent-indigo)";
+    else color = "var(--color-indigo-text)";
     nodes.push(
       <span key={key++} style={{ color }}>
         {token}
@@ -45,7 +45,7 @@ function highlightJson(text: string): ReactNode[] {
   return nodes;
 }
 
-const SCHEMA_META: Record<Schema["status"], { label: string; color: string }> = {
+export const SCHEMA_META: Record<Schema["status"], { label: string; color: string }> = {
   valid: { label: "Schema valid", color: "var(--color-pass)" },
   invalid: { label: "Schema invalid", color: "var(--color-fail)" },
   none: { label: "No output", color: "var(--color-text-muted)" },
@@ -92,7 +92,7 @@ export default function RawOutputCard({ rawOutput }: { rawOutput: string | null 
             type="button"
             onClick={handleCopy}
             aria-label="Copy raw output"
-            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+            className="-my-2 ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>

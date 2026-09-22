@@ -15,7 +15,7 @@ export default function HeaderChips({ items }: { items: Inspection[] }) {
     {
       label: "Ready to Review",
       value: count(items, (i) => i.status === "analyzed"),
-      color: "var(--color-accent-indigo)",
+      color: "var(--color-indigo-text)",
     },
     {
       label: "Needs Manual Review",

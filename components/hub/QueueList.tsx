@@ -41,8 +41,8 @@ function QueueCard({
           background: isActive ? "var(--color-surface-raised)" : "var(--color-surface)",
         }}
       >
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center"
+        <label
+          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center"
           onClick={(e) => e.stopPropagation()}
         >
           <input
@@ -52,14 +52,16 @@ function QueueCard({
             aria-label={`Select ${inspection.id}`}
             className="h-4 w-4 accent-[var(--color-accent-cyan)]"
           />
-        </span>
+        </label>
 
         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-control)] bg-[var(--color-border)]">
           {/* eslint-disable-next-line @next/next/no-img-element -- locally-decoded blob URLs */}
           <img src={inspection.image_url} alt="" className="h-full w-full object-cover" />
         </div>
 
-        <div className="min-w-0 flex-1">
+        {/* On a phone the ID gets a floor, so the badge and delete button wrap to a second
+            line instead of squeezing "VQ-10421" down to "VQ-10…". */}
+        <div className="min-w-[8.5rem] flex-1 sm:min-w-0">
           <p className="truncate font-mono text-xs text-[var(--color-text-primary)]">{inspection.id}</p>
           <p className="truncate text-xs text-[var(--color-text-secondary)]">{inspection.file_name}</p>
         </div>

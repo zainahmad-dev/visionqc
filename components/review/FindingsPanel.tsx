@@ -32,7 +32,7 @@ function CategoryRow({ inspection }: { inspection: Inspection }) {
         onChange={(e) =>
           dispatch({ type: "SET_REVIEWER_CATEGORY", inspectionId: inspection.id, category: e.target.value })
         }
-        className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] px-2 text-sm text-[var(--color-text-primary)]"
+        className="h-11 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface-raised)] px-2 text-sm text-[var(--color-text-primary)]"
       >
         <option value="" disabled>
           Select a category
@@ -89,6 +89,7 @@ export default function FindingsPanel({
   hoveredId,
   onSelect,
   onHover,
+  bare = false,
 }: {
   inspection: Inspection;
   threshold: number;
@@ -96,6 +97,7 @@ export default function FindingsPanel({
   hoveredId: string | null;
   onSelect: (id: string | null) => void;
   onHover: (id: string | null) => void;
+  bare?: boolean; // inside the mobile sheet, which is already the card
 }) {
   const counts = COUNTER_ORDER.map((review) => ({
     review,
@@ -103,7 +105,13 @@ export default function FindingsPanel({
   }));
 
   return (
-    <div className="flex h-fit flex-col gap-4 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:sticky lg:top-20">
+    <div
+      className={
+        bare
+          ? "flex flex-col gap-4"
+          : "flex h-fit flex-col gap-4 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:sticky lg:top-20"
+      }
+    >
       <p className="text-xs font-semibold tracking-wide text-[var(--color-text-muted)] uppercase">
         AI Findings — Proposal Only
       </p>

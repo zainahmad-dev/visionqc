@@ -55,7 +55,7 @@ function RecordCard({ inspection }: { inspection: Inspection }) {
         </div>
         <span
           className="flex h-11 shrink-0 items-center rounded-[var(--radius-control)] px-4 text-sm font-medium text-white"
-          style={{ background: "var(--gradient-accent)" }}
+          style={{ background: "var(--gradient-accent-strong)" }}
         >
           Review
         </span>

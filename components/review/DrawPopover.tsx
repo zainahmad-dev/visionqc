@@ -35,7 +35,7 @@ export default function DrawPopover({
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 text-sm text-[var(--color-text-primary)]"
+            className="h-11 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 text-sm text-[var(--color-text-primary)]"
           >
             {Object.entries(DEFECT_LABEL).map(([key, label]) => (
               <option key={key} value={key}>
@@ -49,7 +49,7 @@ export default function DrawPopover({
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as Severity)}
-            className="h-10 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 text-sm text-[var(--color-text-primary)]"
+            className="h-11 rounded-[var(--radius-control)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 text-sm text-[var(--color-text-primary)]"
           >
             {Object.entries(SEVERITY_LABEL).map(([key, label]) => (
               <option key={key} value={key}>
@@ -65,7 +65,7 @@ export default function DrawPopover({
           type="button"
           onClick={handleAdd}
           className="flex h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          style={{ background: "var(--gradient-accent)" }}
+          style={{ background: "var(--gradient-accent-strong)" }}
         >
           Add
         </button>

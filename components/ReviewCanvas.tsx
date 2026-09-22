@@ -357,7 +357,7 @@ export default function ReviewCanvas({
         )}
 
         {asset.status === "loading" && (
-          <div className="h-2/3 w-2/3 animate-pulse rounded-[var(--radius-card)] bg-[var(--color-border)]" />
+          <div className="h-2/3 w-2/3 motion-safe:animate-pulse rounded-[var(--radius-card)] bg-[var(--color-border)]" />
         )}
 
         {asset.status === "ready" && frame && (

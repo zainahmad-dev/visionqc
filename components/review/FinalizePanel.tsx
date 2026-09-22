@@ -118,10 +118,12 @@ export default function FinalizePanel({ inspection, threshold }: { inspection: I
           aria-disabled={blocked}
           aria-describedby={blocked ? "finalize-blockers" : undefined}
           title={blocked ? blockers.join(" ") : "Finalize and save this inspection"}
-          className="flex h-12 items-center gap-2 rounded-[var(--radius-control)] px-5 text-sm font-semibold text-white transition-opacity"
+          className="flex h-12 items-center gap-2 rounded-[var(--radius-control)] border px-5 text-sm font-semibold transition-opacity"
           style={{
-            background: "var(--gradient-accent)",
-            opacity: blocked ? 0.45 : 1,
+            // Blocked = a quiet, fully readable surface — never white text faded to 45%.
+            background: blocked ? "var(--color-surface-raised)" : "var(--gradient-accent-strong)",
+            borderColor: blocked ? "var(--color-border-strong)" : "transparent",
+            color: blocked ? "var(--color-text-secondary)" : "#fff",
             cursor: blocked ? "not-allowed" : "pointer",
           }}
         >

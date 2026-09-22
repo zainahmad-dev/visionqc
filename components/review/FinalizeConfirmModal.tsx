@@ -97,7 +97,7 @@ export default function FinalizeConfirmModal({
               type="button"
               onClick={handleConfirm}
               className="flex h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-              style={{ background: "var(--gradient-accent)" }}
+              style={{ background: "var(--gradient-accent-strong)" }}
             >
               Confirm & Save
             </button>
@@ -123,7 +123,7 @@ export default function FinalizeConfirmModal({
                 exit={{ opacity: 0 }}
                 transition={{ duration: reduceMotion ? 0.01 : 0.2 }}
               >
-                <Loader2 size={40} className="animate-spin text-[var(--color-accent-cyan)]" />
+                <Loader2 size={40} className="motion-safe:animate-spin text-[var(--color-accent-cyan)]" />
               </motion.div>
             ) : (
               <motion.div

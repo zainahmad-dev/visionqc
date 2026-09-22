@@ -20,7 +20,7 @@ export default function ScanStepper({ currentPhase }: { currentPhase: ScanPhase 
               }}
             >
               {state === "done" && <Check size={12} strokeWidth={3} />}
-              {state === "active" && <Loader2 size={12} className="animate-spin" />}
+              {state === "active" && <Loader2 size={12} className="motion-safe:animate-spin" />}
               {state === "waiting" && <span>{index + 1}</span>}
             </span>
             <span

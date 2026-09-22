@@ -3,12 +3,16 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { isFlagged } from "@/lib/rules";
+import { useMediaQuery } from "@/lib/use-media-query";
+import { useFocusMainOnChange } from "@/components/RouteFocus";
 import type { Inspection, Status } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 import ReviewCanvas from "@/components/ReviewCanvas";
 import RecordPicker from "@/components/review/RecordPicker";
+import BottomSheet, { SHEET_PEEK_PX } from "@/components/review/BottomSheet";
 import FindingsPanel from "@/components/review/FindingsPanel";
 import FinalizePanel from "@/components/review/FinalizePanel";
 
@@ -21,9 +25,26 @@ const REVIEWABLE: Status[] = ["analyzed", "needs_manual_review", "failed"];
 function ReviewRecordView({ inspection, threshold }: { inspection: Inspection; threshold: number }) {
   const [selectedDefectId, setSelectedDefectId] = useState<string | null>(null);
   const [hoveredDefectId, setHoveredDefectId] = useState<string | null>(null);
+  // Side by side from lg up; below that the findings become a bottom sheet.
+  const isDesktop = useMediaQuery("(min-width: 1024px)", true);
+
+  const flagged = inspection.defects.filter((d) => isFlagged(d, threshold)).length;
+  const count = inspection.defects.length;
+  const findingsPanel = (bare: boolean) => (
+    <FindingsPanel
+      inspection={inspection}
+      threshold={threshold}
+      selectedId={selectedDefectId}
+      hoveredId={hoveredDefectId}
+      onSelect={setSelectedDefectId}
+      onHover={setHoveredDefectId}
+      bare={bare}
+    />
+  );
 
   return (
-    <>
+    // Below lg the sheet's peek bar floats over the bottom of the page, so leave room for it.
+    <div className="flex flex-col gap-6" style={isDesktop ? undefined : { paddingBottom: SHEET_PEEK_PX }}>
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/review"
@@ -48,18 +69,32 @@ function ReviewRecordView({ inspection, threshold }: { inspection: Inspection; t
           onSelectDefect={setSelectedDefectId}
           onHoverDefect={setHoveredDefectId}
         />
-        <FindingsPanel
-          inspection={inspection}
-          threshold={threshold}
-          selectedId={selectedDefectId}
-          hoveredId={hoveredDefectId}
-          onSelect={setSelectedDefectId}
-          onHover={setHoveredDefectId}
-        />
+        {isDesktop && findingsPanel(false)}
       </div>
 
       <FinalizePanel inspection={inspection} threshold={threshold} />
-    </>
+
+      {!isDesktop && (
+        <BottomSheet
+          label="AI findings"
+          summary={
+            <span className="flex flex-wrap items-center gap-x-2">
+              <span>
+                AI findings · {count} {count === 1 ? "finding" : "findings"}
+              </span>
+              {flagged > 0 && (
+                <span className="inline-flex items-center gap-1 text-[var(--color-review)]">
+                  <TriangleAlert size={12} aria-hidden="true" />
+                  {flagged} below threshold
+                </span>
+              )}
+            </span>
+          }
+        >
+          {findingsPanel(true)}
+        </BottomSheet>
+      )}
+    </div>
   );
 }
 
@@ -67,6 +102,7 @@ function ReviewPageInner() {
   const { state } = useStore();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  useFocusMainOnChange(id); // picker ⇄ record swaps content on the same path
 
   const reviewable = [...state.inspections]
     .filter((i) => REVIEWABLE.includes(i.status))
