@@ -1,5 +1,20 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Database setup
+
+Finalized inspections are stored in Supabase (Postgres + Storage). To run this locally:
+
+1. Create a Supabase project.
+2. Copy `.env.example` to `.env.local` and fill in your project's URL and keys (Project Settings -> API).
+3. In the Supabase dashboard, open SQL Editor -> New query, paste the contents of
+   `supabase/migrations/0001_init.sql`, and run it. This creates the `inspections` and
+   `defects` tables, the trigger that makes `ai_*` columns immutable, and Row Level Security.
+4. Create a public Storage bucket named `inspection-images` (Storage -> New bucket, toggle
+   "Public bucket" on). Product photos are uploaded there on Finalize.
+
+Everything before Finalize (uploads, scanning, review edits) stays in local browser state —
+only Finalize writes to the database.
+
 ## Getting Started
 
 First, run the development server:

@@ -3,10 +3,17 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { StoreProvider } from "@/lib/store";
+import { listInspections } from "@/lib/actions";
 import ScanEngine from "@/components/ScanEngine";
 import ToastHost from "@/components/ToastHost";
 import Announcer from "@/components/Announcer";
 import MotionProvider from "@/components/MotionProvider";
+
+// Every 'completed' record lives in Supabase, not in this process — a hard
+// refresh must see the latest of them, so this layout (and everything under
+// it) always renders at request time rather than being frozen into a build-
+// time prerender.
+export const dynamic = "force-dynamic";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,7 +43,21 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Nothing before Finalize ever touches the database — this fetch is the one
+  // exception: it's a read, done once per hard navigation, seeding the store
+  // with what earlier sessions already saved. A failure here (bad env vars, a
+  // project that's unreachable) shouldn't take the whole app down; it starts
+  // empty instead, and the reviewer is told why via a toast (see StoreProvider).
+  let initialInspections: Awaited<ReturnType<typeof listInspections>> = [];
+  let loadError: string | null = null;
+  try {
+    initialInspections = await listInspections();
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "unknown error";
+    console.error("Failed to load inspections from Supabase:", err);
+  }
+
   return (
     <html
       lang="en"
@@ -56,7 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to main content
         </a>
         <MotionProvider>
-          <StoreProvider>
+          <StoreProvider initialInspections={initialInspections} loadError={loadError}>
             <ScanEngine />
             <Announcer />
             <AppShell>{children}</AppShell>

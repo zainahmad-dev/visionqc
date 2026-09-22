@@ -14,7 +14,6 @@ import {
   type ARecord,
   type Range,
 } from "@/lib/analytics";
-import { buildHistory } from "@/lib/analytics-history";
 import { isLogRecord, logResult, recordTime } from "@/lib/logs";
 import { useStore } from "@/lib/store";
 import { useIsClient } from "@/lib/use-is-client";
@@ -70,12 +69,12 @@ function Body() {
   const [now] = useState(() => Date.now());
 
   // ---- one record set → every number on the page ---------------------------
-  const history = useMemo(() => buildHistory(now), [now]);
-  const live = useMemo(
+  // Every 'completed' inspection here came from a real Finalize — either
+  // loaded from Supabase at the last hard refresh, or saved this session.
+  const records = useMemo(
     () => state.inspections.map(fromInspection).filter((r): r is ARecord => r !== null),
     [state.inspections]
   );
-  const records = useMemo(() => [...history, ...live], [history, live]);
   const frame = useMemo(() => buildFrame(range, now), [range, now]);
 
   const view = useMemo(() => {
@@ -140,8 +139,8 @@ function Body() {
       />
 
       <p className="text-xs text-[var(--color-text-muted)]">
-        Inspections saved in this session are included live. Earlier history is sample data until the database
-        replaces it.
+        Every number here comes from a finalized record — earlier ones loaded from the database, this
+        session&apos;s as they&apos;re saved.
       </p>
     </div>
   );

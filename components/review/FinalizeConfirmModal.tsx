@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, TriangleAlert } from "lucide-react";
 import type { Inspection, Review } from "@/lib/types";
 import { autoResult } from "@/lib/rules";
 import { useStore } from "@/lib/store";
+import { saveInspection } from "@/lib/actions";
+import { forgetUploadedFile, takeUploadedFile } from "@/lib/image-cache";
 import Modal from "./Modal";
 
 const COUNTER_ORDER: Review[] = ["confirmed", "edited", "dismissed", "reviewer_added"];
@@ -18,7 +20,7 @@ const COUNTER_LABEL: Record<Review, string> = {
   reviewer_added: "added",
 };
 
-type Stage = "confirm" | "loading" | "success";
+type Stage = "confirm" | "loading" | "success" | "error";
 
 export default function FinalizeConfirmModal({
   inspection,
@@ -29,10 +31,11 @@ export default function FinalizeConfirmModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [stage, setStage] = useState<Stage>("confirm");
+  const [error, setError] = useState<string | null>(null);
 
   const counts = COUNTER_ORDER.map((review) => ({
     review,
@@ -41,27 +44,48 @@ export default function FinalizeConfirmModal({
   const finalResult =
     inspection.result_mode === "auto" ? autoResult(inspection) : inspection.result_mode === "override_pass" ? "pass" : "fail";
 
-  // Escape/backdrop close only from the confirm step — once saving starts
-  // there's nothing to back out of, and the flow ends by navigating away.
+  // Escape/backdrop close from confirm or a stopped-with-error step — once
+  // saving is actually in flight there's nothing to back out of, and success
+  // ends the flow by navigating away on its own.
   function handleClose() {
-    if (stage === "confirm") onClose();
+    if (stage === "confirm" || stage === "error") onClose();
   }
 
-  function handleConfirm() {
-    dispatch({ type: "FINALIZE", inspectionId: inspection.id });
+  async function handleConfirm() {
+    setError(null);
     setStage("loading");
+
+    // The blob: URL in inspection.image_url only exists in this tab — the
+    // actual bytes were parked here at upload time (lib/image-cache.ts) for
+    // exactly this moment.
+    const file = takeUploadedFile(inspection.id);
+    if (!file) {
+      setStage("error");
+      setError("The original image isn't available in this session anymore. Re-scan it from the Hub to finalize.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("inspection", JSON.stringify(inspection));
+    formData.append("threshold", String(state.threshold));
+    formData.append("image", file);
+
+    const result = await saveInspection(formData);
+    if (!result.ok) {
+      setStage("error");
+      setError(result.error);
+      return;
+    }
+
+    forgetUploadedFile(inspection.id);
+    dispatch({ type: "FINALIZE_SAVED", inspection: result.inspection });
+    setStage("success");
     window.setTimeout(
       () => {
-        setStage("success");
-        window.setTimeout(
-          () => {
-            dispatch({ type: "TOAST", message: `${inspection.id} finalized and saved.`, tone: "success" });
-            router.push(`/logs?highlight=${inspection.id}`);
-          },
-          reduceMotion ? 80 : 900
-        );
+        dispatch({ type: "TOAST", message: `${inspection.id} finalized and saved.`, tone: "success" });
+        router.push(`/logs?highlight=${inspection.id}`);
       },
-      reduceMotion ? 80 : 700
+      reduceMotion ? 80 : 900
     );
   }
 
@@ -112,7 +136,41 @@ export default function FinalizeConfirmModal({
         </>
       )}
 
-      {stage !== "confirm" && (
+      {stage === "error" && (
+        <>
+          <div className="flex items-start gap-2">
+            <TriangleAlert size={18} className="mt-0.5 shrink-0 text-[var(--color-fail)]" aria-hidden="true" />
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Couldn&apos;t save {inspection.id}</h2>
+              <p role="alert" className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                {error}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+            Nothing was saved — the record is exactly as it was before you pressed Confirm & Save.
+          </p>
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStage("confirm")}
+              className="flex h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+              style={{ background: "var(--gradient-accent-strong)" }}
+            >
+              Try Again
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-strong)] px-3 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {(stage === "loading" || stage === "success") && (
         <div className="flex flex-col items-center gap-4 py-6">
           <AnimatePresence mode="wait">
             {stage === "loading" ? (

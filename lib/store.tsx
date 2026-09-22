@@ -1,9 +1,7 @@
 "use client";
 
-import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useReducer, useRef, type Dispatch, type ReactNode } from "react";
 import type { BBox, Defect, Inspection, ResultMode, Severity } from "./types";
-import { buildMockInspections } from "./mock";
-import { finalizeBlockers } from "./rules";
 import type { ScanPhase } from "./scan";
 
 export type Tab = "hub" | "review" | "logs" | "analytics";
@@ -69,7 +67,10 @@ export type Action =
   | { type: "SET_RESULT_MODE"; inspectionId: string; mode: ResultMode }
   | { type: "SET_REVIEWER_CATEGORY"; inspectionId: string; category: string }
   | { type: "SET_NOTES"; inspectionId: string; notes: string }
-  | { type: "FINALIZE"; inspectionId: string }
+  // Fired once the server action has actually committed the row (and the
+  // image) to Supabase — `inspection` is what it wrote, so the client's copy
+  // converges exactly onto the saved one (real image_url, server reviewed_at).
+  | { type: "FINALIZE_SAVED"; inspection: Inspection }
   | { type: "SET_TAB"; tab: Tab }
   | { type: "TOAST"; message: string; tone?: Toast["tone"]; action?: ToastAction }
   | { type: "ANNOUNCE"; message: string }
@@ -262,13 +263,12 @@ function reducer(state: State, action: Action): State {
         })),
       };
 
-    case "FINALIZE":
+    case "FINALIZE_SAVED":
+      // Replace wholesale — the server response IS the new source of truth
+      // for this record, not a patch on top of the client's guess of it.
       return {
         ...state,
-        inspections: mapInspection(state.inspections, action.inspectionId, (i) => {
-          if (finalizeBlockers(i, state.threshold).length > 0) return i;
-          return { ...i, status: "completed", reviewed_at: Date.now() };
-        }),
+        inspections: mapInspection(state.inspections, action.inspection.id, () => action.inspection),
       };
 
     case "SET_TAB":
@@ -302,9 +302,9 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function initState(): State {
+function initState(initialInspections: Inspection[]): State {
   return {
-    inspections: buildMockInspections(),
+    inspections: initialInspections,
     threshold: 75,
     activeTab: "hub",
     theme: "dark",
@@ -320,8 +320,36 @@ type StoreContextValue = { state: State; dispatch: Dispatch<Action> };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, initState);
+export function StoreProvider({
+  children,
+  initialInspections,
+  loadError = null,
+}: {
+  children: ReactNode;
+  // What app/layout.tsx (a Server Component) fetched from Supabase before the
+  // page ever reached the browser — every 'completed' record on record, plus
+  // anything else still open from a session that never got this far. Nothing
+  // before Finalize has ever touched the database, so this is the ONLY
+  // moment the store's inspections come from anywhere but local reducer state.
+  initialInspections: Inspection[];
+  // Set if that fetch itself failed (bad credentials, project unreachable) —
+  // surfaced as a toast rather than silently starting empty, so a real outage
+  // doesn't look identical to "no records yet".
+  loadError?: string | null;
+}) {
+  const [state, dispatch] = useReducer(reducer, initialInspections, initState);
+  const announced = useRef(false);
+
+  useEffect(() => {
+    if (!loadError || announced.current) return;
+    announced.current = true;
+    dispatch({
+      type: "TOAST",
+      message: `Couldn't load saved records: ${loadError}`,
+      tone: "error",
+    });
+  }, [loadError]);
+
   return <StoreContext.Provider value={{ state, dispatch }}>{children}</StoreContext.Provider>;
 }
 

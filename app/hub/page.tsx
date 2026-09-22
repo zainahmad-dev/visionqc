@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Inspection } from "@/lib/types";
 import { nextInspectionIds } from "@/lib/ids";
+import { forgetUploadedFile, rememberUploadedFile } from "@/lib/image-cache";
 import DropZone from "@/components/hub/DropZone";
 import HeaderChips from "@/components/hub/HeaderChips";
 import QueueList from "@/components/hub/QueueList";
@@ -51,6 +52,11 @@ export default function HubPage() {
       reviewed_at: null,
     }));
 
+    // The blob: URL above is a preview only — Finalize needs the actual bytes
+    // (to upload to Storage), which can't be recovered from that URL on the
+    // server. Keep the real File around for exactly that moment.
+    files.forEach((file, index) => rememberUploadedFile(newInspections[index].id, file));
+
     dispatch({ type: "ADD_QUEUE_MANY", inspections: newInspections });
     dispatch({ type: "SET_ACTIVE_HUB", id: newInspections[0].id });
   }
@@ -59,6 +65,7 @@ export default function HubPage() {
     for (const id of ids) {
       const inspection = state.inspections.find((i) => i.id === id);
       if (inspection?.image_url.startsWith("blob:")) URL.revokeObjectURL(inspection.image_url);
+      forgetUploadedFile(id);
       dispatch({ type: "REMOVE_QUEUE", id });
     }
     setChecked((prev) => {
