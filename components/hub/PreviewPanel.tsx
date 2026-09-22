@@ -5,33 +5,21 @@ import Link from "next/link";
 import { ImageOff, RotateCcw, TriangleAlert } from "lucide-react";
 import type { Inspection } from "@/lib/types";
 import { useStore, type ScanState } from "@/lib/store";
-import { ERROR_REASON, TOTAL_SCAN_MS, phaseStartOffset } from "@/lib/scan";
+import { ERROR_REASON } from "@/lib/scan";
 import ScanStepper from "./ScanStepper";
 import ScannerOverlay from "./ScannerOverlay";
 import StatusBadge from "@/components/StatusBadge";
 
-type Progress = { elapsedTotal: number; percent: number };
-
-const IDLE_PROGRESS: Progress = { elapsedTotal: 0, percent: 0 };
-
-// All clock reads live inside the effect/interval callbacks (not the render
-// body) so the component itself stays a pure function of state.
-function useScanProgress(scan: ScanState, active: boolean, intervalMs = 150): Progress {
-  const [progress, setProgress] = useState<Progress>(IDLE_PROGRESS);
+// Real inference has no predictable duration (CPU vs. GPU alone is a 10x
+// swing), so there's no honest percentage to show — just how long it's
+// actually been running. All clock reads live inside the interval callback
+// (not the render body) so the component itself stays a pure function of state.
+function useElapsed(scan: ScanState, active: boolean, intervalMs = 200): number {
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!active || !scan) return;
-
-    function tick() {
-      const now = Date.now();
-      const elapsedTotal = now - scan!.scanStartedAt;
-      const overallMs = Math.min(
-        TOTAL_SCAN_MS,
-        phaseStartOffset(scan!.phase) + (now - scan!.phaseStartedAt)
-      );
-      setProgress({ elapsedTotal, percent: Math.round((overallMs / TOTAL_SCAN_MS) * 100) });
-    }
-
+    const tick = () => setElapsed(Date.now() - scan!.scanStartedAt);
     // Deferred so the first update happens in a callback, not synchronously
     // during the effect itself.
     const kickoff = window.setTimeout(tick, 0);
@@ -42,7 +30,7 @@ function useScanProgress(scan: ScanState, active: boolean, intervalMs = 150): Pr
     };
   }, [active, scan, intervalMs]);
 
-  return active ? progress : IDLE_PROGRESS;
+  return active ? elapsed : 0;
 }
 
 export default function PreviewPanel({
@@ -54,7 +42,7 @@ export default function PreviewPanel({
 }) {
   const { dispatch } = useStore();
   const isScanning = !!scan && inspection?.status === "scanning" && scan.inspectionId === inspection.id;
-  const { elapsedTotal, percent } = useScanProgress(scan, isScanning);
+  const elapsedTotal = useElapsed(scan, isScanning);
 
   if (!inspection) {
     return (
@@ -93,20 +81,20 @@ export default function PreviewPanel({
         <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <ScanStepper currentPhase={scan.phase} />
           <div className="mt-4">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-border)]">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${percent}%`, background: "var(--gradient-accent)" }}
-              />
+            {/* Indeterminate, not a percentage: real inference has no
+                predictable duration to measure progress against. */}
+            <div
+              className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-border)]"
+              role="progressbar"
+              aria-label="Scan in progress"
+            >
+              <div className="indeterminate-bar h-full w-1/3 rounded-full" style={{ background: "var(--gradient-accent)" }} />
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-              <span>{(elapsedTotal / 1000).toFixed(1)}s elapsed</span>
-              <span>{percent}%</span>
-            </div>
+            <p className="mt-1.5 text-xs text-[var(--color-text-secondary)]">{(elapsedTotal / 1000).toFixed(1)}s elapsed</p>
           </div>
           {showSlowHint && (
             <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-              Local inference can take a while on first run.
+              Local inference on CPU can take a minute or more — this is normal, not stuck.
             </p>
           )}
         </div>

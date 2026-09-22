@@ -10,7 +10,7 @@ import { highlightJson, parseSchema, SCHEMA_META } from "@/components/review/Raw
 // repaired or hidden) under a red "Schema invalid" chip.
 export default function RawJsonTab({ inspection }: { inspection: Inspection }) {
   const [copied, setCopied] = useState(false);
-  const schema = parseSchema(inspection.raw_output);
+  const schema = parseSchema(inspection.raw_output, inspection.error_code === "invalid_json");
   const meta = SCHEMA_META[schema.status];
 
   async function handleCopy() {
