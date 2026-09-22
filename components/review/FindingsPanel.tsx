@@ -99,6 +99,8 @@ export default function FindingsPanel({
   onHover: (id: string | null) => void;
   bare?: boolean; // inside the mobile sheet, which is already the card
 }) {
+  const { state } = useStore();
+  const scanMeta = state.scanMeta[inspection.id];
   const counts = COUNTER_ORDER.map((review) => ({
     review,
     n: inspection.defects.filter((d) => d.review === review).length,
@@ -141,7 +143,7 @@ export default function FindingsPanel({
         </ul>
       )}
 
-      <RawOutputCard rawOutput={inspection.raw_output} />
+      <RawOutputCard rawOutput={inspection.raw_output} errorCode={inspection.error_code} history={scanMeta?.history} />
 
       {inspection.defects.length > 0 && (
         <p className="font-mono text-xs text-[var(--color-text-secondary)]">

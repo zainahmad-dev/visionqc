@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useReducer, useRef, type Dispatch, type ReactNode } from "react";
-import type { BBox, Defect, Inspection, ResultMode, Severity } from "./types";
+import type { BBox, Defect, ErrorCode, Inspection, ResultMode, Severity } from "./types";
 import type { ScanPhase } from "./scan";
 
 export type Tab = "hub" | "review" | "logs" | "analytics";
@@ -26,6 +26,13 @@ export type ScanState = {
   simulateInvalidJson: boolean;
 } | null;
 
+// A superseded scan attempt, kept when Retry starts a new one — CLAUDE.md rule
+// 3 ("nothing is discarded") applies to retries too, not just the current
+// attempt. Session-only: like everything else before Finalize, it's gone on
+// refresh, and a finalized record only ever carries its one final raw_output.
+export type ScanAttempt = { raw_output: string | null; error_code: ErrorCode | null; at: number };
+export type ScanMeta = { retryCount: number; history: ScanAttempt[] };
+
 export type State = {
   inspections: Inspection[];
   threshold: number; // percent, 0-100
@@ -35,6 +42,7 @@ export type State = {
   scan: ScanState;
   simulateInvalidJson: boolean; // dev toggle, consumed by the next scan that starts
   activeHubId: string | null; // inspection focused in the Hub preview panel
+  scanMeta: Record<string, ScanMeta>; // keyed by inspection id
   // A spoken-only message for the screen-reader live region (e.g. "restored" after
   // Undo) — things that happen without a visible toast.
   announcement: { id: string; message: string } | null;
@@ -105,13 +113,16 @@ function reducer(state: State, action: Action): State {
     case "ADD_QUEUE_MANY":
       return { ...state, inspections: [...action.inspections, ...state.inspections] };
 
-    case "REMOVE_QUEUE":
+    case "REMOVE_QUEUE": {
+      const restMeta = Object.fromEntries(Object.entries(state.scanMeta).filter(([id]) => id !== action.id));
       return {
         ...state,
         inspections: state.inspections.filter((i) => i.id !== action.id),
         scan: state.scan?.inspectionId === action.id ? null : state.scan,
         activeHubId: state.activeHubId === action.id ? null : state.activeHubId,
+        scanMeta: restMeta,
       };
+    }
 
     case "SCAN_START": {
       const now = Date.now();
@@ -152,9 +163,11 @@ function reducer(state: State, action: Action): State {
         }),
       };
 
-    case "RETRY":
+    case "RETRY": {
       // Re-queue rather than jump straight to "scanning" — the engine already
       // owns picking one queued item at a time, so retries flow through it too.
+      const current = state.inspections.find((i) => i.id === action.id);
+      const meta = state.scanMeta[action.id] ?? { retryCount: 0, history: [] };
       return {
         ...state,
         inspections: mapInspection(state.inspections, action.id, (i) => ({
@@ -162,7 +175,19 @@ function reducer(state: State, action: Action): State {
           status: "queued",
           error_code: null,
         })),
+        // The attempt being superseded goes into history before it's overwritten —
+        // never discarded, just no longer the one shown by default.
+        scanMeta: {
+          ...state.scanMeta,
+          [action.id]: {
+            retryCount: meta.retryCount + 1,
+            history: current
+              ? [...meta.history, { raw_output: current.raw_output, error_code: current.error_code, at: Date.now() }]
+              : meta.history,
+          },
+        },
       };
+    }
 
     case "SET_SIMULATE_INVALID_JSON":
       return { ...state, simulateInvalidJson: action.value };
@@ -312,6 +337,7 @@ function initState(initialInspections: Inspection[]): State {
     scan: null,
     simulateInvalidJson: false,
     activeHubId: null,
+    scanMeta: {},
     announcement: null,
   };
 }

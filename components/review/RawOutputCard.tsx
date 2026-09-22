@@ -1,15 +1,23 @@
 "use client";
 
 import { useState, type MouseEvent, type ReactNode } from "react";
-import { Check, ChevronDown, Copy } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import type { ScanAttempt } from "@/lib/store";
+import type { ErrorCode } from "@/lib/types";
 
 type Schema = { status: "valid" | "invalid" | "none"; text: string };
 
-export function parseSchema(raw: string | null): Schema {
+// `knownInvalid`: the app already knows this attempt failed (error_code
+// 'invalid_json') even though the text happens to be syntactically valid
+// JSON — Ollama's constrained decoding guarantees syntax, not that the model
+// picked values our schema actually allows (e.g. an enum outside the set).
+// Without this, a schema-rejected-but-parseable response would show "Schema
+// valid" beside a Needs Manual Review record, which is the wrong story.
+export function parseSchema(raw: string | null, knownInvalid = false): Schema {
   if (raw === null) return { status: "none", text: "" };
   try {
     const parsed = JSON.parse(raw);
-    return { status: "valid", text: JSON.stringify(parsed, null, 2) };
+    return { status: knownInvalid ? "invalid" : "valid", text: knownInvalid ? raw : JSON.stringify(parsed, null, 2) };
   } catch {
     return { status: "invalid", text: raw };
   }
@@ -51,11 +59,44 @@ export const SCHEMA_META: Record<Schema["status"], { label: string; color: strin
   none: { label: "No output", color: "var(--color-text-muted)" },
 };
 
-export default function RawOutputCard({ rawOutput }: { rawOutput: string | null }) {
+export default function RawOutputCard({
+  rawOutput,
+  errorCode = null,
+  history = [],
+}: {
+  rawOutput: string | null;
+  // The current attempt's error_code, if any — 'invalid_json' forces the chip
+  // to "Schema invalid" even when the text itself parses fine (see parseSchema).
+  errorCode?: ErrorCode | null;
+  // Superseded attempts from earlier retries, oldest first — CLAUDE.md rule 3:
+  // nothing is discarded, so a Retry doesn't just quietly replace what came
+  // before. Empty on a record that's never been retried, and always empty for
+  // an already-saved one (only the current attempt is ever persisted).
+  history?: ScanAttempt[];
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const schema = parseSchema(rawOutput);
+
+  type Attempt = Omit<ScanAttempt, "at"> & { at: number | null };
+  const attempts: Attempt[] = [...history, { raw_output: rawOutput, error_code: errorCode, at: null }];
+  const latestIndex = attempts.length - 1;
+  const [index, setIndex] = useState(latestIndex);
+
+  // A new attempt landed (Retry finished, or the very first scan just did) —
+  // snap back to showing the current one rather than silently leaving an old
+  // attempt on screen. Adjusted during render (React's documented pattern for
+  // resetting state on a prop change without a key-remount), not in an effect.
+  const [seenLatestIndex, setSeenLatestIndex] = useState(latestIndex);
+  if (latestIndex !== seenLatestIndex) {
+    setSeenLatestIndex(latestIndex);
+    setIndex(latestIndex);
+  }
+
+  const viewing = attempts[index];
+  const schema = parseSchema(viewing.raw_output, viewing.error_code === "invalid_json");
   const meta = SCHEMA_META[schema.status];
+  const isCurrent = index === latestIndex;
+  const hasHistory = attempts.length > 1;
 
   async function handleCopy(e: MouseEvent) {
     e.preventDefault();
@@ -99,9 +140,44 @@ export default function RawOutputCard({ rawOutput }: { rawOutput: string | null 
         )}
       </summary>
       <div className="border-t border-[var(--color-border)] p-3">
+        {hasHistory && (
+          <div className="mb-3 flex items-center justify-between gap-2 text-xs text-[var(--color-text-secondary)]">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Previous attempt"
+                disabled={index === 0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIndex((i) => Math.max(0, i - 1));
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] transition-colors enabled:hover:text-[var(--color-text-primary)] disabled:opacity-30"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="font-mono">
+                Attempt {index + 1} of {attempts.length}
+                {isCurrent && " (current)"}
+              </span>
+              <button
+                type="button"
+                aria-label="Next attempt"
+                disabled={isCurrent}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIndex((i) => Math.min(latestIndex, i + 1));
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] transition-colors enabled:hover:text-[var(--color-text-primary)] disabled:opacity-30"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+            {viewing.at && <span>{new Date(viewing.at).toLocaleTimeString()}</span>}
+          </div>
+        )}
         {schema.status === "none" ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
-            No output was produced for this record.
+            No output was produced for this {isCurrent ? "record" : "attempt"}.
           </p>
         ) : (
           <pre className="overflow-x-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-[var(--color-text-secondary)]">

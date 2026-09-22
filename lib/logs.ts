@@ -1,7 +1,6 @@
 // Pure logic for the Logs page — which records belong, how they filter and
 // sort, and how times are formatted. No React, so it's easy to reason about.
 
-import { TOTAL_SCAN_MS } from "./scan";
 import { effType, finalResult } from "./rules";
 import type { Defect, ErrorCode, Inspection, Status } from "./types";
 
@@ -64,10 +63,15 @@ export function resultNote(inspection: Inspection): string | null {
   return inspection.result_mode !== "auto" ? "Overridden by reviewer" : null;
 }
 
-// The data model stores no analysis time. Until the database (phase 10) records
-// one, the timeline shows the simulated scan duration after upload — and says so.
+// Real inference runs anywhere from a few seconds to a minute-plus depending on
+// the machine, so there's no fixed duration to add anymore — and the data
+// model still has no column for when analysis actually finished. This is a
+// rough placeholder purely for the Timeline's ordering/pacing; the UI marks
+// it "estimated" rather than presenting it as fact.
+const TYPICAL_ANALYSIS_MS = 45_000;
+
 export function estimatedAnalyzedAt(inspection: Inspection): number {
-  return inspection.created_at + TOTAL_SCAN_MS;
+  return inspection.created_at + TYPICAL_ANALYSIS_MS;
 }
 
 // ---------------------------------------------------------------------------
